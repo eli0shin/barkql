@@ -101,8 +101,17 @@ function formatArrayValue(values: readonly QueryValue[]): string {
   return `(${values.map(formatValue).join(' OR ')})`;
 }
 
-function isQueryChain(value: unknown): value is readonly unknown[] {
-  return Array.isArray(value);
+function isBaseQuery(value: unknown): value is BaseQueryType {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isQueryValue(value: unknown): value is QueryValue {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null
+  );
 }
 
 function isOperator(value: unknown): value is Operator {
@@ -123,9 +132,36 @@ function compileBaseQuery(query: BaseQueryType): string {
       if (Array.isArray(value)) {
         return `${key}:${formatArrayValue(value)}`;
       }
-      return `${key}:${formatValue(value as QueryValue)}`;
+      if (isQueryValue(value)) {
+        return `${key}:${formatValue(value)}`;
+      }
+      return '';
     })
     .join(' AND ');
+}
+
+function compileQueryInternal(query: unknown): string {
+  if (Array.isArray(query)) {
+    const parts: string[] = [];
+
+    for (const element of query) {
+      if (isOperator(element)) {
+        parts.push(element);
+      } else if (Array.isArray(element)) {
+        parts.push(compileQueryInternal(element));
+      } else if (isBaseQuery(element)) {
+        parts.push(compileBaseQuery(element));
+      }
+    }
+
+    return `(${parts.join(' ')})`;
+  }
+
+  if (isBaseQuery(query)) {
+    return compileBaseQuery(query);
+  }
+
+  return '';
 }
 
 /**
@@ -142,28 +178,9 @@ export function compileDatadogQuery(query: BaseQueryType): string;
 export function compileDatadogQuery<const T extends readonly unknown[]>(
   query: T & ValidatePattern<T>
 ): string;
+// eslint-disable-next-line for-ai/no-bare-wrapper -- wrapper provides type-safe overloads for public API
 export function compileDatadogQuery(query: unknown): string {
-  if (isQueryChain(query)) {
-    const parts: string[] = [];
-
-    for (const element of query) {
-      if (isOperator(element)) {
-        parts.push(element);
-      } else if (isQueryChain(element)) {
-        parts.push(
-          compileDatadogQuery(
-            element as readonly unknown[] as readonly [BaseQueryType]
-          )
-        );
-      } else {
-        parts.push(compileBaseQuery(element as BaseQueryType));
-      }
-    }
-
-    return `(${parts.join(' ')})`;
-  }
-
-  return compileBaseQuery(query as BaseQueryType);
+  return compileQueryInternal(query);
 }
 
 /**
@@ -188,7 +205,7 @@ export function queryBuilder<const T extends readonly unknown[]>(
 ): QueryBuilder<readonly [T]>;
 export function queryBuilder(
   initialQuery: BaseQueryType | readonly unknown[]
-): any {
+): unknown {
   const wrapIfNeeded = (
     q: BaseQueryType | readonly unknown[]
   ): readonly unknown[] => (Array.isArray(q) ? q : [q]);
