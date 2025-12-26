@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+### Patch Changes
+
+- [#8](https://github.com/eli0shin/barkql/pull/8) [`8817ef3`](https://github.com/eli0shin/barkql/commit/8817ef365fc17119d2b21853a59c89a9d3572d2b) Thanks [@eli0shin](https://github.com/eli0shin)! - Fix GitHub releases not being created by using `changeset publish` instead of a custom npm publish script, which provides the expected "New tag:" output format that changesets/action parses.
+
 ## 0.1.2
 
 ### Patch Changes
