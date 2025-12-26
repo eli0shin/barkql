@@ -175,17 +175,20 @@ test('ValidatePattern returns input type for valid pattern', () => {
 });
 
 test('BaseQueryType accepts valid query objects', () => {
-  const query: BaseQueryType = { name: 'John', age: 30, active: true };
+  const query = { name: 'John', age: 30, active: true } satisfies BaseQueryType;
   expectTypeOf(query).toExtend<BaseQueryType>();
 });
 
 test('BaseQueryType accepts arrays of primitives', () => {
-  const query: BaseQueryType = { tags: ['admin', 'user'], ids: [1, 2, 3] };
+  const query = {
+    tags: ['admin', 'user'],
+    ids: [1, 2, 3],
+  } satisfies BaseQueryType;
   expectTypeOf(query).toExtend<BaseQueryType>();
 });
 
 test('Query type accepts BaseQueryType', () => {
-  const query: Query = { name: 'John' };
+  const query = { name: 'John' } satisfies Query;
   expectTypeOf(query).toExtend<Query>();
 });
 
